@@ -11,6 +11,14 @@
 </fieldset>
 </form>
 
+<form action="/group" method="POST">
+<fieldset>
+<legend>Add A Group</legend>
+    {{ forms.render(group_form) }}
+    <p><input type="Submit" value="Save Group"></p>
+</fieldset>
+</form>
+
 
 <form action="/gen" method="POST">
 <fieldset>

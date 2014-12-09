@@ -43,8 +43,7 @@ class Contact(db.Model):
     name = db.Column(db.String)
     address = db.Column(db.String)
     phone = db.Column(db.String)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    goroup_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
     
     def __repr__(self):
         return '{0}, {1}, {2}'.format(name, address, phone)
@@ -53,9 +52,14 @@ class Group(db.Model):
     __tablename__ = 'groups'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    group_name = db.Column(db.String)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     contact = db.relationship('Contact', backref='groups', lazy='select')
+    
+    def __repr__(self):
+        return self.group_name
+    def __str__(self):
+        return self.group_name
     
 #//\\//\\//\\//\\Forms//\\//\\//\\//\\
 
@@ -69,9 +73,9 @@ class GenForm(Form):
     
     
     
-    caps = fields.BooleanField('Add Capital Letters')
-    
-    swap = fields.BooleanField('Substitute: (3 == E...$ == S...etc)')
+#    caps = fields.BooleanField('Add Capital Letters')
+#    
+#    swap = fields.BooleanField('Substitute: (3 == E...$ == S...etc)')
     
 class UserForm(Form):
     user_name = fields.StringField()
@@ -125,24 +129,17 @@ def add_group():
     form = GroupForm()
     if form.validate_on_submit():
         group = Group()
+        form.populate_obj(group)
+        group.group_name = form.group_name.data
+        db.session.add(group)
+        db.session.commit()
+        flash("Added " + form.group_name.data + " for " + form.user.data.user_name)
+        return redirect(url_for("index"))
+    return render_template("errors.html", form=form)
 
-#//\\//\\//\\//\\Making the Password//\\//\\//\\//\\
-
-def getDB():  #Creates a list of strings from a text file.
-    myFile = open('wordLST.txt', 'r')
-    
-    #Build an array of words to chose from
-    words = []
-    pw = []
-    for i in myFile:
-        line = i.strip()
-        words.append(line)
-        
-    return words
+#//\\//\\//\\//\\Making the Contact//\\//\\//\\//\\
 
 def make(form):
-    #Makes a single string of 4 words pulled from the below function, then returns the finished string.
-    
     minL = int(request.form['minL'])
     maxL = int(request.form['maxL'])
     totL = int(request.form['totL'])
@@ -242,7 +239,7 @@ def view_users():  #shows all of the users in the db
     query = User.query.filter(User.id >= 0)
     data = query_to_list(query)
     data = [next(data)] + [[_make_link(cell) if i == 0 else cell for i, cell in enumerate(row)] for row in data]
-    return render_template("pw_list.html", data=data, type="Users")
+    return render_template("contacts.html", data=data, type="Users")
 
 #//\\//\\//\\//\\Links//\\//\\//\\//\\
 
@@ -272,7 +269,7 @@ def view_user_pw(user_id): #shows a list of the users passwords
     data = query_to_list(query)
     title = "Passwords for " + user.user_name
     
-    return render_template("pw_list.html", data=data, type=title)
+    return render_template("contacts.html", data=data, type=title)
 
 def query_to_list(query, include_field_names=True): #reads user information from the db
     column_names = []
@@ -295,7 +292,7 @@ def rm(): #redirects to a page showing the active users
     data = query_to_list(query)
     data = [next(data)] + [[_make_rm(cell) if i == 0 else cell for i, cell in enumerate(row)] for row in data]
     
-    return render_template("rm_list.html", data=data, type="Users")
+    return render_template("rm_user.html", data=data, type="Users")
 
 @app.route("/rm/<int:user_id>")
 def rm_user(user_id): #a page just to run a script to remove the selected user from the db
